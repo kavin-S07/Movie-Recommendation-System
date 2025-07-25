@@ -1,104 +1,48 @@
 🎬 Movie Recommendation System
-A content-based movie recommendation system built using machine learning and deployed with a Flask web interface.
+This is a content-based movie recommendation system built using Python, Flask, and the TMDB 5000 Movie Dataset. The system suggests similar movies based on user input by analyzing genres, keywords, cast, and crew using TF-IDF and cosine similarity.
 
-📌 Project Overview
-This system recommends movies similar to the one the user enters. It uses content-based filtering by analyzing genres, cast, crew, and keywords from the movie metadata. The system uses TF-IDF vectorization and cosine similarity to find the most relevant movies.
-
-📁 Project Structure
-pgsql
+📂 Project Structure
+bash
 Copy
 Edit
 Movie-Recommendation-System/
-├── dataset/
-│   ├── tmdb_5000_movies.csv
-│   └── tmdb_5000_credits.csv
+│
+├── build_model.py           # Builds and saves the model (movies.pkl, similarity.pkl)
+├── app.py                   # Flask web application
+├── movies.pkl               # Pickled movie data with tags
+├── similarity.pkl           # Pickled cosine similarity matrix
+├── requirements.txt         # Python dependencies
 ├── templates/
-│   └── index.html
-├── build_model.py
-├── app.py
-├── movies.pkl
-├── similarity.pkl
-└── README.md
+│   └── index.html           # Web page template (HTML with Jinja2)
+└── README.md                # Project documentation
+📊 Dataset Used
+TMDB 5000 Movie Dataset
+
+Files used:
+
+tmdb_5000_movies.csv
+
+tmdb_5000_credits.csv
+
 ⚙️ How It Works
-Step 1: Build the Model
+build_model.py:
 
-Run the script below to clean the data, extract features, and compute similarity between movies.
+Cleans and preprocesses movie data.
 
-nginx
-Copy
-Edit
-python build_model.py
-This will generate two files:
+Extracts important features like genres, keywords, cast, and director.
 
-movies.pkl: Cleaned movie data
+Uses TF-IDF vectorization and cosine similarity to compute movie similarities.
 
-similarity.pkl: Cosine similarity matrix
+Saves data using Pickle.
 
-Step 2: Run the Web App
+app.py:
 
-Launch the Flask app:
+Loads the saved data and model.
 
-nginx
-Copy
-Edit
-python app.py
-Then open your browser and go to:
+Uses Flask to create a web interface.
 
-cpp
-Copy
-Edit
-http://127.0.0.1:5000/
-✨ Features
-Suggests 8 similar movies for any input movie
+Returns top 8 recommended movies with details like title, tagline, rating, runtime, and genre.
 
-Dark-themed user interface
+index.html:
 
-Shows:
-
-Movie Title
-
-Tagline
-
-IMDB Rating
-
-Runtime
-
-Genres
-
-Google search link
-
-🛠 Technologies Used
-Python
-
-Pandas
-
-Scikit-learn
-
-Flask
-
-HTML/CSS
-
-📦 Dataset Source
-TMDB 5000 Movie Dataset from Kaggle
-Link: https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata
-
-✅ Sample Output
-Input: Iron Man
-
-Recommendations:
-
-Iron Man 2
-
-Iron Man 3
-
-Avengers: Age of Ultron
-
-Ant-Man
-
-Captain America: Civil War
-
-The Avengers
-
-Thor
-
-Guardians of the Galaxy
+A clean and dark-themed UI where users enter a movie name and get recommendations in styled cards.
