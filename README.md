@@ -1,4 +1,4 @@
-🎬 Movie Recommendation System
+[🎬 Movie Recommendation System
 This is a content-based movie recommendation system built using Python, Flask, and the TMDB 5000 Movie Dataset. The system suggests similar movies based on user input by analyzing genres, keywords, cast, and crew using TF-IDF and cosine similarity.
 
 📂 Project Structure
@@ -46,3 +46,5 @@ Returns top 8 recommended movies with details like title, tagline, rating, runti
 index.html:
 
 A clean and dark-themed UI where users enter a movie name and get recommendations in styled cards.
+](http://127.0.0.1:5000/
+)
