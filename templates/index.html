@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CineMatch — Movie Recommender</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --card: #1a1a24;
+      --card-hover: #21212e;
+      --border: rgba(255,255,255,0.07);
+      --border-hover: rgba(255,255,255,0.15);
+      --accent: #e8c97e;
+      --accent2: #c87941;
+      --text: #f0ede6;
+      --muted: #8a8794;
+      --faint: #4a4856;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Background grid texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      padding: 64px 0 48px;
+      text-align: center;
+    }
+
+    .logo-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(232,201,126,0.1);
+      border: 1px solid rgba(232,201,126,0.2);
+      border-radius: 20px;
+      padding: 5px 16px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.4rem, 6vw, 3.8rem);
+      font-weight: 700;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #f0ede6 0%, #e8c97e 60%, #c87941 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--muted);
+      font-weight: 300;
+      line-height: 1.6;
+    }
+
+    /* ── Search Box ─────────────────────────────────────── */
+    .search-section {
+      margin: 40px 0;
+    }
+
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border-hover);
+      border-radius: 16px;
+      padding: 6px 6px 6px 20px;
+      gap: 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-box:focus-within {
+      border-color: rgba(232,201,126,0.5);
+      box-shadow: 0 0 0 4px rgba(232,201,126,0.08);
+    }
+
+    .search-icon {
+      color: var(--muted);
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    #movieInput {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      color: var(--text);
+      font-weight: 400;
+      padding: 10px 0;
+    }
+
+    #movieInput::placeholder { color: var(--faint); }
+
+    .search-btn {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 11px;
+      padding: 12px 28px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: #1a1000;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .search-btn:hover { opacity: 0.9; }
+    .search-btn:active { transform: scale(0.97); }
+    .search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Autocomplete dropdown */
+    .autocomplete-list {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0; right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border-hover);
+      border-radius: 12px;
+      overflow: hidden;
+      z-index: 100;
+      display: none;
+    }
+
+    .autocomplete-list.show { display: block; }
+
+    .autocomplete-item {
+      padding: 12px 20px;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .autocomplete-item:hover {
+      background: var(--card-hover);
+      color: var(--accent);
+    }
+
+    /* ── Status / Error ─────────────────────────────────── */
+    .status {
+      text-align: center;
+      padding: 20px;
+      color: var(--muted);
+      font-size: 14px;
+      display: none;
+    }
+
+    .error-msg {
+      background: rgba(220,60,60,0.08);
+      border: 1px solid rgba(220,60,60,0.2);
+      border-radius: 12px;
+      padding: 14px 20px;
+      color: #f07070;
+      font-size: 14px;
+      margin-top: 16px;
+      display: none;
+    }
+
+    /* ── Results ────────────────────────────────────────── */
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .results-header.visible { opacity: 1; }
+
+    .results-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .results-count {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .movie-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .movie-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+      opacity: 0;
+      transform: translateY(12px);
+      animation: cardIn 0.4s forwards;
+    }
+
+    @keyframes cardIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .movie-card:hover {
+      border-color: rgba(232,201,126,0.3);
+      background: var(--card-hover);
+      transform: translateY(-2px);
+    }
+
+    .movie-rank {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .movie-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+      margin-bottom: 12px;
+    }
+
+    .score-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .score-bar-bg {
+      flex: 1;
+      height: 3px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 2px;
+      transition: width 0.8s ease;
+    }
+
+    .score-text {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ── Spinner ────────────────────────────────────────── */
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid rgba(255,255,255,0.08);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Popular Tags ───────────────────────────────────── */
+    .suggestions {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .suggestions-label {
+      font-size: 12px;
+      color: var(--faint);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .suggestion-chip {
+      font-size: 13px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 14px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .suggestion-chip:hover {
+      border-color: rgba(232,201,126,0.4);
+      color: var(--accent);
+    }
+
+    /* ── Footer ─────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 48px 0 32px;
+      color: var(--faint);
+      font-size: 13px;
+    }
+
+    @media (max-width: 480px) {
+      .search-box { padding: 6px 6px 6px 14px; }
+      .search-btn { padding: 12px 18px; font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo-tag">✦ AI Powered</div>
+    <h1>CineMatch</h1>
+    <p class="subtitle">Find your next favourite film using<br>machine learning & cosine similarity</p>
+  </header>
+
+  <!-- Search -->
+  <section class="search-section">
+    <div class="search-wrapper">
+      <div class="search-box">
+        <span class="search-icon">🎬</span>
+        <input
+          type="text"
+          id="movieInput"
+          placeholder="Enter a movie name (e.g. Inception)..."
+          autocomplete="off"
+        />
+        <button class="search-btn" id="searchBtn" onclick="getRecommendations()">
+          Find Similar
+        </button>
+      </div>
+      <div class="autocomplete-list" id="autocompleteList"></div>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="suggestions">
+      <span class="suggestions-label">Try:</span>
+      <span class="suggestion-chip" onclick="quickSearch('The Dark Knight')">The Dark Knight</span>
+      <span class="suggestion-chip" onclick="quickSearch('Inception')">Inception</span>
+      <span class="suggestion-chip" onclick="quickSearch('Interstellar')">Interstellar</span>
+      <span class="suggestion-chip" onclick="quickSearch('Avatar')">Avatar</span>
+      <span class="suggestion-chip" onclick="quickSearch('The Avengers')">The Avengers</span>
+    </div>
+  </section>
+
+  <!-- Status/Loader -->
+  <div class="status" id="status">
+    <div class="spinner"></div>
+    <p style="margin-top:12px;">Finding similar movies...</p>
+  </div>
+
+  <!-- Results -->
+  <div id="resultsSection" style="display:none">
+    <div class="results-header" id="resultsHeader">
+      <div class="results-title" id="resultsTitle">Recommended for you</div>
+      <div class="results-count" id="resultsCount"></div>
+    </div>
+    <div class="movie-grid" id="movieGrid"></div>
+  </div>
+
+  <footer>
+    Built with Python · Pandas · Scikit-learn · Cosine Similarity<br>
+    Dataset: TMDB 5000 Movies
+  </footer>
+</div>
+
+<script>
+  const input = document.getElementById('movieInput');
+  const btn = document.getElementById('searchBtn');
+  const errorMsg = document.getElementById('errorMsg');
+  const status = document.getElementById('status');
+  const resultsSection = document.getElementById('resultsSection');
+  const movieGrid = document.getElementById('movieGrid');
+  const resultsHeader = document.getElementById('resultsHeader');
+  const resultsTitle = document.getElementById('resultsTitle');
+  const resultsCount = document.getElementById('resultsCount');
+  const autocompleteList = document.getElementById('autocompleteList');
+
+  let autocompleteTimer;
+
+  // ── Autocomplete ────────────────────────────────────────
+  input.addEventListener('input', () => {
+    clearTimeout(autocompleteTimer);
+    const q = input.value.trim();
+    if (q.length < 2) { autocompleteList.classList.remove('show'); return; }
+    autocompleteTimer = setTimeout(() => fetchAutocomplete(q), 280);
+  });
+
+  async function fetchAutocomplete(q) {
+    try {
+      const res = await fetch(`/search?q=${encodeURIComponent(q)}`);
+      const titles = await res.json();
+      renderAutocomplete(titles);
+    } catch { autocompleteList.classList.remove('show'); }
+  }
+
+  function renderAutocomplete(titles) {
+    if (!titles.length) { autocompleteList.classList.remove('show'); return; }
+    autocompleteList.innerHTML = titles.map(t =>
+      `<div class="autocomplete-item" onclick="selectTitle('${t.replace(/'/g, "\\'")}')">${t}</div>`
+    ).join('');
+    autocompleteList.classList.add('show');
+  }
+
+  function selectTitle(title) {
+    input.value = title;
+    autocompleteList.classList.remove('show');
+    getRecommendations();
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-wrapper')) {
+      autocompleteList.classList.remove('show');
+    }
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') getRecommendations();
+  });
+
+  // ── Quick search chips ─────────────────────────────────
+  function quickSearch(title) {
+    input.value = title;
+    getRecommendations();
+  }
+
+  // ── Main Recommend ─────────────────────────────────────
+  async function getRecommendations() {
+    const movie = input.value.trim();
+    if (!movie) return;
+
+    autocompleteList.classList.remove('show');
+    setLoading(true);
+    hideError();
+
+    try {
+      const res = await fetch('/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ movie })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(data.error || 'Something went wrong.');
+        resultsSection.style.display = 'none';
+      } else {
+        renderResults(data.movie, data.recommendations);
+      }
+    } catch {
+      showError('Could not connect to server. Make sure app.py is running.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Render cards ───────────────────────────────────────
+  function renderResults(movie, recs) {
+    resultsSection.style.display = 'block';
+    resultsTitle.textContent = `Because you liked "${movie}"`;
+    resultsCount.textContent = `${recs.length} recommendations`;
+
+    movieGrid.innerHTML = recs.map((r, i) => `
+      <div class="movie-card" style="animation-delay:${i * 60}ms" onclick="quickSearch('${r.title.replace(/'/g, "\\'")}')">
+        <div class="movie-rank">#${i + 1} Match</div>
+        <div class="movie-title">${r.title}</div>
+        <div class="score-bar-wrap">
+          <div class="score-bar-bg">
+            <div class="score-bar-fill" style="width:${r.score}%"></div>
+          </div>
+          <div class="score-text">${r.score}%</div>
+        </div>
+      </div>
+    `).join('');
+
+    setTimeout(() => resultsHeader.classList.add('visible'), 50);
+  }
+
+  function setLoading(on) {
+    btn.disabled = on;
+    status.style.display = on ? 'block' : 'none';
+    btn.textContent = on ? 'Searching...' : 'Find Similar';
+  }
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.style.display = 'block';
+  }
+
+  function hideError() {
+    errorMsg.style.display = 'none';
+  }
+</script>
+</body>
+</html>
